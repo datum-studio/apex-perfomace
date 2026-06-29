@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>APEX — Dashboard</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- Sidebar overlay mobile -->
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">A</div>
+      <div>
+        <div class="logo-text">APEX</div>
+        <div class="logo-sub">Performance</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav" id="sidebarNav">
+      <!-- preenchido via JS baseado no role -->
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-pill" onclick="logout()">
+        <div class="user-avatar" id="userAvatar">?</div>
+        <div class="user-info">
+          <div class="user-name" id="userName">Carregando...</div>
+          <div class="user-role" id="userRole">–</div>
+        </div>
+        <span style="color:var(--text-muted);font-size:12px;">↩</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Conteúdo principal -->
+  <div class="main-content">
+    <div class="top-bar">
+      <button class="hamburger" onclick="toggleSidebar()">☰</button>
+      <span class="page-title" id="pageTitle">Dashboard</span>
+      <div id="cycleInfo" style="font-size:12px;color:var(--text-muted);"></div>
+    </div>
+
+    <div class="page-content" id="pageContent">
+      <div class="loading"><div class="spinner"></div> Carregando...</div>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<!-- Modal genérico -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modalTitle"></span>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer" id="modalFooter"></div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script>
+
+// ============================================================
+// NAVEGAÇÃO
+// ============================================================
+let currentUser = null;
+let currentCycle = null;
+let currentPage = 'dashboard';
+
+const ROLE_LABELS = { admin: 'Administrador', leader: 'Líder', captain: 'Capitão', employee: 'Colaborador' };
+
+function getNavItems(role) {
+  const all = [
+    { id: 'dashboard', icon: '📊', label: 'Dashboard', roles: ['admin', 'leader', 'captain'] },
+    { id: 'meu-painel', icon: '👤', label: 'Meu Painel', roles: ['employee', 'captain', 'leader', 'admin'] },
+    { id: 'avaliar', icon: '✅', label: 'Avaliar Agora', roles: ['leader', 'captain', 'admin'], section: 'Avaliações' },
+    { id: 'avaliacoes', icon: '📋', label: 'Avaliações do Mês', roles: ['leader', 'captain', 'admin'] },
+    { id: 'placar', icon: '🏆', label: 'Placar Geral', roles: ['leader', 'captain', 'admin'] },
+    { id: 'colaboradores', icon: '👥', label: 'Colaboradores', roles: ['admin'], section: 'Gestão' },
+    { id: 'faturamento', icon: '💰', label: 'Faturamento', roles: ['admin'] },
+    { id: 'ciclos', icon: '📅', label: 'Histórico de Ciclos', roles: ['admin'] },
+    { id: 'usuarios', icon: '🔐', label: 'Usuários', roles: ['admin'] },
+    { id: 'configuracoes', icon: '⚙️', label: 'Configurações', roles: ['admin'], section: 'Sistema' },
+  ];
+  return all.filter(item => item.roles.includes(role));
+}
+
+function buildSidebar(role) {
+  const items = getNavItems(role);
+  let html = '';
+  let lastSection = null;
+  items.forEach(item => {
+    if (item.section && item.section !== lastSection) {
+      html += `<div class="nav-section">${item.section}</div>`;
+      lastSection = item.section;
+    }
+    html += `<button class="nav-item" id="nav-${item.id}" onclick="navigate('${item.id}')">
+      <span class="nav-icon">${item.icon}</span>${item.label}
+    </button>`;
+  });
+  document.getElementById('sidebarNav').innerHTML = html;
+}
+
+function setActiveNav(pageId) {
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  const el = document.getElementById(`nav-${pageId}`);
+  if (el) el.classList.add('active');
+}
+
+function navigate(pageId) {
+  currentPage = pageId;
+  setActiveNav(pageId);
+  closeSidebar();
+  renderPage(pageId);
+}
+
+// ============================================================
+// INICIALIZAÇÃO
+// ============================================================
+requireAuth(user => {
+  currentUser = user;
+  document.getElementById('userAvatar').textContent = (user.name || user.email || '?')[0].toUpperCase();
+  document.getElementById('userName').textContent = user.name || user.email || 'Usuário';
+  document.getElementById('userRole').textContent = ROLE_LABELS[user.role] || user.role;
+  buildSidebar(user.role);
+
+  getOrCreateCurrentCycle().then(cycle => {
+    currentCycle = cycle;
+    document.getElementById('cycleInfo').textContent = `${getMonthName(cycle.month)}/${cycle.year}`;
+
+    // redirecionar colaborador direto para o painel
+    if (user.role === 'employee') {
+      navigate('meu-painel');
+    } else {
+      navigate('dashboard');
+    }
+  });
+});
+
+function logout() {
+  auth.signOut().then(() => window.location.href = 'index.html');
+}
+
+// ============================================================
+// ROTEAMENTO DE PÁGINAS
+// ============================================================
+function renderPage(pageId) {
+  const titles = {
+    dashboard: 'Dashboard', 'meu-painel': 'Meu Painel', avaliar: 'Avaliar Agora',
+    avaliacoes: 'Avaliações do Mês', placar: 'Placar Geral',
+    colaboradores: 'Colaboradores', faturamento: 'Faturamento',
+    ciclos: 'Histórico de Ciclos', usuarios: 'Usuários', configuracoes: 'Configurações'
+  };
+  document.getElementById('pageTitle').textContent = titles[pageId] || pageId;
+  const content = document.getElementById('pageContent');
+  content.innerHTML = '<div class="loading"><div class="spinner"></div> Carregando...</div>';
+
+  const pages = {
+    dashboard: renderDashboard,
+    'meu-painel': renderMeuPainel,
+    avaliar: renderAvaliar,
+    avaliacoes: renderAvaliacoes,
+    placar: renderPlacar,
+    colaboradores: renderColaboradores,
+    faturamento: renderFaturamento,
+    ciclos: renderCiclos,
+    usuarios: renderUsuarios,
+    configuracoes: renderConfiguracoes,
+  };
+  if (pages[pageId]) pages[pageId]();
+}
+
+// ============================================================
+// DASHBOARD ADMIN/LÍDER
+// ============================================================
+async function renderDashboard() {
+  const cycle = currentCycle;
+  const [empSnap, evalSnap, revSnap, flagSnap] = await Promise.all([
+    db.collection('employees').where('status', '==', 'active').get(),
+    db.collection('evaluations').where('cycleId', '==', cycle.id).get(),
+    db.collection('revenues').where('cycleId', '==', cycle.id).get(),
+    db.collection('flags').orderBy('level').get(),
+  ]);
+
+  const employees = empSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const evaluations = evalSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const revenues = revSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const flags = flagSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+  // Calcular médias por colaborador
+  const avgMap = {};
+  evaluations.forEach(ev => {
+    if (!avgMap[ev.employeeId]) avgMap[ev.employeeId] = { scores: [], lateCount: 0 };
+    avgMap[ev.employeeId].scores.push(ev.totalScore);
+    avgMap[ev.employeeId].lateCount = Math.max(avgMap[ev.employeeId].lateCount, ev.lateCount || 0);
+  });
+
+  const totalRevenue = revenues.reduce((s, r) => s + (r.amount || 0), 0);
+  const currentFlag = flags.filter(f => f.isActive && f.minRevenue <= totalRevenue).sort((a, b) => b.minRevenue - a.minRevenue)[0];
+  const nextFlag = flags.filter(f => f.isActive && f.minRevenue > totalRevenue).sort((a, b) => a.minRevenue - b.minRevenue)[0];
+
+  const evaluated = employees.filter(e => avgMap[e.id]);
+  const pending = employees.filter(e => !avgMap[e.id]);
+  const berlinda = evaluated.filter(e => {
+    const avg = avgMap[e.id]?.scores.reduce((a, b) => a + b, 0) / avgMap[e.id]?.scores.length;
+    return avg < 50;
+  });
+  const withLates = evaluated.filter(e => (avgMap[e.id]?.lateCount || 0) >= 2);
+
+  const isAdmin = currentUser.role === 'admin';
+
+  document.getElementById('pageContent').innerHTML = `
+    <!-- Stats -->
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-icon">✅</div>
+        <div class="stat-label">Avaliados</div>
+        <div class="stat-value" style="color:var(--green)">${evaluated.length}</div>
+        <div class="stat-sub">de ${employees.length} colaboradores</div>
+        <div class="progress-bar" style="margin-top:10px">
+          <div class="progress-fill" style="width:${employees.length ? (evaluated.length/employees.length*100) : 0}%;background:var(--green)"></div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">⏳</div>
+        <div class="stat-label">Sem Avaliação</div>
+        <div class="stat-value" style="color:var(--yellow)">${pending.length}</div>
+        <div class="stat-sub">precisam ser avaliados</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">⚠️</div>
+        <div class="stat-label">2+ Atrasos</div>
+        <div class="stat-value" style="color:var(--yellow)">${withLates.length}</div>
+        <div class="stat-sub">risco de perder premiação</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🚨</div>
+        <div class="stat-label">Em Berlinda</div>
+        <div class="stat-value" style="color:var(--red)">${berlinda.length}</div>
+        <div class="stat-sub">nota abaixo de 50</div>
+      </div>
+    </div>
+
+    <!-- Bandeira + Faturamento -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">🚩 Status da Bandeira</div>
+            <div class="card-subtitle">${getMonthName(cycle.month)}/${cycle.year}</div>
+          </div>
+          ${isAdmin ? `<button class="btn btn-primary btn-sm" onclick="navigate('faturamento')">+ Lançar</button>` : ''}
+        </div>
+        <div style="display:flex;align-items:center;gap:16px">
+          ${currentFlag
+            ? `<div class="flag-circle flag-${currentFlag.level}">${currentFlag.level}</div>
+               <div>
+                 <div style="font-size:18px;font-weight:700">Bandeira ${currentFlag.level}</div>
+                 <div style="color:var(--text-muted);font-size:13px">${currentFlag.bonusPercentage}% de premiação</div>
+               </div>`
+            : `<div class="flag-circle" style="background:#374151">0</div>
+               <div style="color:var(--text-muted)">Nenhuma bandeira atingida</div>`
+          }
+        </div>
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+          <div style="font-size:12px;color:var(--text-muted)">Faturamento do mês</div>
+          <div style="font-size:22px;font-weight:700">${formatCurrency(totalRevenue)}</div>
+          ${nextFlag ? `<div style="font-size:12px;color:var(--yellow);margin-top:4px">Faltam ${formatCurrency(nextFlag.minRevenue - totalRevenue)} para Bandeira ${nextFlag.level}</div>` : ''}
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">⏳ Aguardando Avaliação</div>
+          <button class="btn btn-primary btn-sm" onclick="navigate('avaliar')">Avaliar</button>
+        </div>
+        ${pending.length === 0
+          ? `<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">Todos avaliados!</div></div>`
+          : `<div style="display:flex;flex-direction:column;gap:8px">
+              ${pending.slice(0, 5).map(emp => `
+                <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface2);border-radius:8px;cursor:pointer" onclick="navigate('avaliar')">
+                  <div class="level-badge level-${emp.level}">${emp.level}</div>
+                  <div style="flex:1">
+                    <div style="font-weight:500;font-size:13px">${emp.name}</div>
+                    <div style="font-size:11px;color:var(--text-muted)">${emp.position || 'Colaborador'}</div>
+                  </div>
+                  <span style="color:var(--text-muted)">→</span>
+                </div>`).join('')}
+              ${pending.length > 5 ? `<div style="text-align:center;font-size:12px;color:var(--text-muted)">+${pending.length - 5} mais</div>` : ''}
+            </div>`
+        }
+      </div>
+    </div>
+
+    <!-- Ações rápidas -->
+    <div class="card">
+      <div class="card-title" style="margin-bottom:12px">Ações Rápidas</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        <button class="btn btn-primary" onclick="navigate('avaliar')">✅ Avaliar Colaborador</button>
+        <button class="btn btn-ghost" onclick="navigate('avaliacoes')">📋 Ver Avaliações</button>
+        <button class="btn btn-ghost" onclick="navigate('placar')">🏆 Placar Geral</button>
+        ${isAdmin ? `<button class="btn btn-ghost" onclick="navigate('colaboradores')">👥 Colaboradores</button>` : ''}
+        ${isAdmin ? `<button class="btn btn-ghost" onclick="navigate('faturamento')">💰 Faturamento</button>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+// ============================================================
+// MEU PAINEL (colaborador)
+// ============================================================
+async function renderMeuPainel() {
+  // Achar o employee vinculado ao user
+  const empSnap = await db.collection('employees').where('userId', '==', currentUser.uid).get();
+  if (empSnap.empty) {
+    document.getElementById('pageContent').innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">👤</div>
+        <div class="empty-text">Seu usuário ainda não está vinculado a um colaborador.<br>Fale com o administrador.</div>
+      </div>`;
+    return;
+  }
+  const emp = { id: empSnap.docs[0].id, ...empSnap.docs[0].data() };
+  const cycle = currentCycle;
+
+  const [evalSnap, histSnap, flagSnap] = await Promise.all([
+    db.collection('evaluations').where('cycleId', '==', cycle.id).where('employeeId', '==', emp.id).get(),
+    db.collection('evaluations').where('employeeId', '==', emp.id).orderBy('createdAt', 'desc').limit(12).get(),
+    db.collection('flags').orderBy('level').get(),
+  ]);
+
+  const evals = evalSnap.docs.map(d => d.data());
+  const history = histSnap.docs.map(d => d.data());
+  const flags = flagSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+  const avgScore = evals.length ? Math.round(evals.reduce((s, e) => s + e.totalScore, 0) / evals.length) : null;
+  const lateCount = evals.length ? Math.max(...evals.map(e => e.lateCount || 0)) : 0;
+  const avgPunctuality = evals.length ? Math.round(evals.reduce((s, e) => s + (e.punctuality || 0), 0) / evals.length) : 0;
+  const avgOrganization = evals.length ? Math.round(evals.reduce((s, e) => s + (e.organization || 0), 0) / evals.length) : 0;
+  const avgProductivity = evals.length ? Math.round(evals.reduce((s, e) => s + (e.productivity || 0), 0) / evals.length) : 0;
+  const avgQuality = evals.length ? Math.round(evals.reduce((s, e) => s + (e.quality || 0), 0) / evals.length) : 0;
+  const avgSafety = evals.length ? Math.round(evals.reduce((s, e) => s + (e.safety || 0), 0) / evals.length) : 0;
+
+  const status = getScoreLabel(avgScore, lateCount);
+  const scoreColor = avgScore !== null ? getScoreColor(avgScore) : 'var(--text-muted)';
+
+  const PROMO_REQS = { N1: { min: 70, next: 'N2' }, N2: { min: 75, next: 'N3' }, N3: { min: 80, next: 'N4' }, N4: { min: 85, next: 'N5' } };
+  const req = PROMO_REQS[emp.level];
+  const promoEligible = req && avgScore !== null && avgScore >= req.min;
+
+  document.getElementById('pageContent').innerHTML = `
+    <div style="display:grid;grid-template-columns:300px 1fr;gap:20px;align-items:start">
+      <!-- Card principal -->
+      <div>
+        <div class="card" style="text-align:center;padding:28px 20px;margin-bottom:16px">
+          <div class="level-badge level-${emp.level}" style="width:52px;height:52px;font-size:16px;margin:0 auto 12px">${emp.level}</div>
+          <div style="font-size:18px;font-weight:700;margin-bottom:4px">${emp.name}</div>
+          <div style="font-size:13px;color:var(--text-muted);margin-bottom:20px">${emp.position || 'Colaborador'}</div>
+
+          <div class="score-big" style="color:${scoreColor}">${avgScore !== null ? avgScore : '–'}</div>
+          <div style="font-size:12px;color:var(--text-muted);margin:4px 0 12px">nota do mês (${evals.length} avaliações)</div>
+          <span class="badge" style="background:${status.color}20;color:${status.color}">${status.label}</span>
+
+          ${lateCount > 0 ? `<div style="margin-top:12px;font-size:12px;color:${lateCount >= 3 ? 'var(--red)' : 'var(--yellow)'}">⚠️ ${lateCount} atraso${lateCount > 1 ? 's' : ''} no mês</div>` : ''}
+        </div>
+
+        <!-- Promoção -->
+        ${req ? `
+        <div class="card">
+          <div class="card-title" style="margin-bottom:12px">📈 Plano de Carreira</div>
+          <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px">
+            ${emp.level} → ${req.next} · Mínimo ${req.min} pontos
+          </div>
+          ${promoEligible
+            ? `<span class="badge badge-green">✅ Pronto para promoção</span>`
+            : `<span class="badge badge-gray">Atingir ${req.min} pts por 2 meses consecutivos</span>`
+          }
+        </div>` : `<div class="card"><div style="color:var(--text-muted);text-align:center;padding:8px">🏅 Nível máximo (N5)</div></div>`}
+      </div>
+
+      <!-- Indicadores + histórico -->
+      <div>
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-title" style="margin-bottom:16px">Indicadores do Mês</div>
+          ${evals.length === 0
+            ? `<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">Sem avaliações neste ciclo ainda.</div></div>`
+            : `
+            ${[
+              { label: 'Pontualidade', val: avgPunctuality },
+              { label: 'Organização (5S)', val: avgOrganization },
+              { label: 'Produtividade', val: avgProductivity },
+              { label: 'Qualidade', val: avgQuality },
+              { label: 'Segurança', val: avgSafety },
+            ].map(ind => `
+              <div class="score-indicator">
+                <div class="score-indicator-label">${ind.label}</div>
+                <div class="score-indicator-bar">
+                  <div class="progress-bar">
+                    <div class="progress-fill" style="width:${ind.val / 20 * 100}%;background:${getScoreColor(ind.val * 5)}"></div>
+                  </div>
+                </div>
+                <div class="score-indicator-value" style="color:${getScoreColor(ind.val * 5)}">${ind.val}</div>
+              </div>`).join('')}`
+          }
+        </div>
+
+        <div class="card">
+          <div class="card-title" style="margin-bottom:12px">Histórico de Avaliações</div>
+          ${history.length === 0
+            ? `<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-text">Nenhum histórico ainda.</div></div>`
+            : `<div class="table-wrap"><table>
+                <thead><tr><th>Ciclo</th><th>Nota</th><th>Atrasos</th><th>Status</th></tr></thead>
+                <tbody>
+                  ${history.map(h => {
+                    const s = getScoreLabel(h.totalScore, h.lateCount || 0);
+                    return `<tr>
+                      <td>${h.cycleId || '-'}</td>
+                      <td style="font-weight:700;color:${getScoreColor(h.totalScore)}">${h.totalScore}</td>
+                      <td>${h.lateCount || 0}</td>
+                      <td><span class="badge" style="background:${s.color}20;color:${s.color}">${s.label}</span></td>
+                    </tr>`;
+                  }).join('')}
+                </tbody>
+              </table></div>`
+          }
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ============================================================
+// AVALIAR AGORA
+// ============================================================
+async function renderAvaliar() {
+  const empSnap = await db.collection('employees').where('status', '==', 'active').orderBy('name').get();
+  const employees = empSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+  document.getElementById('pageContent').innerHTML = `
+    <div style="max-width:600px;margin:0 auto">
+      <div class="card">
+        <div class="card-title" style="margin-bottom:20px">Nova Avaliação — ${getMonthName(currentCycle.month)}/${currentCycle.year}</div>
+
+        <div class="form-group">
+          <label class="form-label">Colaborador</label>
+          <select class="form-control" id="evalEmployee">
+            <option value="">Selecione...</option>
+            ${employees.map(e => `<option value="${e.id}">${e.name} (${e.level})</option>`).join('')}
+          </select>
+        </div>
+
+        <div style="margin:20px 0;padding:16px;background:var(--surface2);border-radius:10px">
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Indicadores (0 a 20 cada)</div>
+          ${[
+            { id: 'punctuality', label: '⏰ Pontualidade' },
+            { id: 'organization', label: '🗂️ Organização (5S)' },
+            { id: 'productivity', label: '⚡ Produtividade' },
+            { id: 'quality', label: '✨ Qualidade' },
+            { id: 'safety', label: '🦺 Segurança' },
+          ].map(ind => `
+            <div style="margin-bottom:16px">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                <label class="form-label" style="margin:0">${ind.label}</label>
+                <span id="${ind.id}Val" style="font-size:18px;font-weight:700;color:var(--primary)">10</span>
+              </div>
+              <input type="range" class="score-slider" id="${ind.id}" min="0" max="20" value="10"
+                oninput="updateSlider('${ind.id}')">
+              <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);margin-top:2px">
+                <span>0</span><span>10</span><span>20</span>
+              </div>
+            </div>`).join('')}
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+          <div class="form-group" style="margin:0">
+            <label class="form-label">Atrasos no mês</label>
+            <input type="number" class="form-control" id="lateCount" min="0" max="31" value="0" placeholder="0">
+          </div>
+          <div class="form-group" style="margin:0">
+            <label class="form-label">Nota total</label>
+            <div style="padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:22px;font-weight:700;color:var(--primary)" id="totalScore">50</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Observações (opcional)</label>
+          <textarea class="form-control" id="evalNotes" placeholder="Anotações sobre esta avaliação..."></textarea>
+        </div>
+
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button class="btn btn-ghost" onclick="navigate('avaliacoes')">Cancelar</button>
+          <button class="btn btn-primary" onclick="salvarAvaliacao()">Salvar Avaliação</button>
+        </div>
+      </div>
+    </div>
+  `;
+  updateTotal();
+}
+
+function updateSlider(id) {
+  const val = document.getElementById(id).value;
+  document.getElementById(id + 'Val').textContent = val;
+  updateTotal();
+}
+
+function updateTotal() {
+  const ids = ['punctuality', 'organization', 'productivity', 'quality', 'safety'];
+  const total = ids.reduce((s, id) => {
+    const el = document.getElementById(id);
+    return s + (el ? parseInt(el.value) : 0);
+  }, 0);
+  const el = document.getElementById('totalScore');
+  if (el) {
+    el.textContent = total;
+    el.style.color = getScoreColor(total);
+  }
+}
+
+async function salvarAvaliacao() {
+  const employeeId = document.getElementById('evalEmployee')?.value;
+  if (!employeeId) { showToast('Selecione um colaborador.', 'error'); return; }
+
+  const punctuality = parseInt(document.getElementById('punctuality').value);
+  const organization = parseInt(document.getElementById('organization').value);
+  const productivity = parseInt(document.getElementById('productivity').value);
+  const quality = parseInt(document.getElementById('quality').value);
+  const safety = parseInt(document.getElementById('safety').value);
+  const totalScore = punctuality + organization + productivity + quality + safety;
+  const lateCount = parseInt(document.getElementById('lateCount').value) || 0;
+  const notes = document.getElementById('evalNotes').value.trim();
+
+  try {
+    await db.collection('evaluations').add({
+      employeeId, cycleId: currentCycle.id,
+      evaluatorId: currentUser.uid,
+      punctuality, organization, productivity, quality, safety,
+      totalScore, lateCount, notes,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    showToast('Avaliação salva com sucesso!');
+    navigate('avaliacoes');
+  } catch (e) {
+    showToast('Erro ao salvar avaliação.', 'error');
+  }
+}
+
+// ============================================================
+// AVALIAÇÕES DO MÊS
+// ============================================================
+async function renderAvaliacoes() {
+  const [empSnap, evalSnap] = await Promise.all([
+    db.collection('employees').where('status', '==', 'active').get(),
+    db.collection('evaluations').where('cycleId', '==', currentCycle.id).get(),
+  ]);
+
+  const employees = empSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const evaluations = evalSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+  const avgMap = {};
+  evaluations.forEach(ev => {
+    if (!avgMap[ev.employeeId]) avgMap[ev.employeeId] = { scores: [], lates: [] };
+    avgMap[ev.employeeId].scores.push(ev.totalScore);
+    avgMap[ev.employeeId].lates.push(ev.lateCount || 0);
+  });
+
+  const data = employees.map(emp => {
+    const info = avgMap[emp.id];
+    const avg = info ? Math.round(info.scores.reduce((a, b) => a + b, 0) / info.scores.length) : null;
+    const late = info ? Math.max(...info.lates) : 0;
+    return { emp, avg, late, count: info ? info.scores.length : 0 };
+  });
+
+  const evaluated = data.filter(d => d.count > 0).length;
+  const berlinda = data.filter(d => d.avg !== null && d.avg < 50).length;
+
+  document.getElementById('pageContent').innerHTML = `
+    <div class="stat-grid" style="margin-bottom:20px">
+      <div class="stat-card"><div class="stat-label">Com Avaliações</div><div class="stat-value" style="color:var(--green)">${evaluated}</div></div>
+      <div class="stat-card"><div class="stat-label">Sem Avaliação</div><div class="stat-value" style="color:var(--yellow)">${employees.length - evaluated}</div></div>
+      <div class="stat-card"><div class="stat-label">Em Berlinda</div><div class="stat-value" style="color:var(--red)">${berlinda}</div></div>
+      <div class="stat-card">
+        <div class="stat-label">Progresso</div>
+        <div style="margin-top:8px"><div class="progress-bar"><div class="progress-fill" style="width:${employees.length ? evaluated/employees.length*100 : 0}%;background:var(--green)"></div></div></div>
+        <div class="stat-sub" style="margin-top:6px">${employees.length ? Math.round(evaluated/employees.length*100) : 0}% avaliados</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Avaliações por Colaborador</div>
+        <button class="btn btn-primary btn-sm" onclick="navigate('avaliar')">+ Nova Avaliação</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Colaborador</th><th>Nível</th><th>Avaliações</th><th>Média</th><th>Atrasos</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            ${data.map(({ emp, avg, late, count }) => {
+              const s = getScoreLabel(avg, late);
+              return `<tr>
+                <td><strong>${emp.name}</strong></td>
+                <td><div class="level-badge level-${emp.level}">${emp.level}</div></td>
+                <td><span class="badge badge-gray">${count}</span></td>
+                <td><span style="font-size:18px;font-weight:700;color:${avg !== null ? getScoreColor(avg) : 'var(--text-muted)'}">${avg !== null ? avg : '–'}</span></td>
+                <td><span class="${late >= 3 ? 'badge badge-red' : ''}">${late}</span></td>
+                <td><span class="badge" style="background:${s.color}20;color:${s.color}">${s.label}</span></td>
+                <td><button class="btn btn-ghost btn-sm" onclick="navigate('avaliar')">Avaliar</button></td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+// ============================================================
+// PLACAR GERAL
+// ============================================================
+async function renderPlacar() {
+  const [empSnap, evalSnap] = await Promise.all([
+    db.collection('employees').where('status', '==', 'active').get(),
+    db.collection('evaluations').where('cycleId', '==', currentCycle.id).get(),
+  ]);
+  const employees = empSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const evaluations = evalSnap.docs.map(d => d.data());
+
+  const avgMap = {};
+  evaluations.forEach(ev => {
+    if (!avgMap[ev.employeeId]) avgMap[ev.employeeId] = { scores: [], lates: [], p: [], o: [], pr: [], q: [], s: [] };
+    const m = avgMap[ev.employeeId];
+    m.scores.push(ev.totalScore);
+    m.lates.push(ev.lateCount || 0);
+    m.p.push(ev.punctuality || 0);
+    m.o.push(ev.organization || 0);
+    m.pr.push(ev.productivity || 0);
+    m.q.push(ev.quality || 0);
+    m.s.push(ev.safety || 0);
+  });
+
+  const avg = arr => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
+
+  const data = employees.map(emp => {
+    const m = avgMap[emp.id];
+    return {
+      emp,
+      score: m ? avg(m.scores) : null,
+      late: m ? Math.max(...m.lates) : 0,
+      count: m ? m.scores.length : 0,
+      p: m ? avg(m.p) : null, o: m ? avg(m.o) : null,
+      pr: m ? avg(m.pr) : null, q: m ? avg(m.q) : null, s: m ? avg(m.s) : null,
+    };
+  }).sort((a, b) => (b.score || 0) - (a.score || 0));
+
+  document.getElementById('pageContent').innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">🏆 Placar Geral — ${getMonthName(currentCycle.month)}/${currentCycle.year}</div>
+          <div class="card-subtitle">Ordenado por média de pontuação</div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Colaborador</th><th>Nível</th><th>Pont.</th><th>Org.</th><th>Prod.</th><th>Qual.</th><th>Seg.</th><th>Média</th><th>Atrasos</th><th>Status</th></tr></thead>
+          <tbody>
+            ${data.map(({ emp, score, late, count, p, o, pr, q, s }, i) => {
+              const status = getScoreLabel(score, late);
+              const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`;
+              return `<tr>
+                <td style="font-weight:700;font-size:16px">${medal}</td>
+                <td><strong>${emp.name}</strong></td>
+                <td><div class="level-badge level-${emp.level}">${emp.level}</div></td>
+                <td>${p ?? '–'}</td><td>${o ?? '–'}</td><td>${pr ?? '–'}</td><td>${q ?? '–'}</td><td>${s ?? '–'}</td>
+                <td style="font-size:20px;font-weight:800;color:${score !== null ? getScoreColor(score) : 'var(--text-muted)'}">${score ?? '–'}</td>
+                <td>${late}</td>
+                <td><span class="badge" style="background:${status.color}20;color:${status.color}">${status.label}</span></td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+// ============================================================
+// COLABORADORES
+// ============================================================
+async function renderColaboradores() {
+  const snap = await db.collection('employees').orderBy('name').get();
+  const employees = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+  document.getElementById('pageContent').innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">👥 Colaboradores (${employees.length})</div>
+        <button class="btn btn-primary" onclick="openModalColaborador()">+ Novo</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Nome</th><th>Nível</th><th>Cargo</th><th>Status</th><th>Salário Base</th><th></th></tr></thead>
+          <tbody>
+            ${employees.map(emp => `<tr>
+              <td><strong>${emp.name}</strong></td>
+              <td><div class="level-badge level-${emp.level}">${emp.level}</div></td>
+              <td style="color:var(--text-muted)">${emp.position || '–'}</td>
+              <td><span class="badge ${emp.status === 'active' ? 'badge-green' : 'badge-gray'}">${emp.status === 'active' ? 'Ativo' : 'Inativo'}</span></td>
+              <td>${emp.baseSalary ? formatCurrency(emp.baseSalary) : '–'}</td>
+              <td style="display:flex;gap:6px">
+                <button class="btn btn-ghost btn-sm" onclick="editColaborador('${emp.id}')">Editar</button>
+                <button class="btn btn-danger btn-sm" onclick="inativarColaborador('${emp.id}','${emp.name}')">Inativar</button>
+              </td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function openModalColaborador(emp = null) {
+  document.getElementById('modalTitle').textContent = emp ? 'Editar Colaborador' : 'Novo Colaborador';
+  document.getElementById('modalBody').innerHTML = `
+    <div class="form-group"><label class="form-label">Nome *</label>
+      <input class="form-control" id="mNome" value="${emp?.name || ''}" placeholder="Nome completo"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Cargo</label>
+        <input class="form-control" id="mCargo" value="${emp?.position || ''}" placeholder="Ex: Operador"></div>
+      <div class="form-group"><label class="form-label">Nível</label>
+        <select class="form-control" id="mLevel">
+          ${['N1','N2','N3','N4','N5'].map(l => `<option ${emp?.level === l ? 'selected' : ''}>${l}</option>`).join('')}
+        </select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Salário Base (R$)</label>
+        <input class="form-control" id="mSalario" type="number" value="${emp ? emp.baseSalary / 100 : ''}" placeholder="0,00"></div>
+      <div class="form-group"><label class="form-label">CPF</label>
+        <input class="form-control" id="mCpf" value="${emp?.cpf || ''}" placeholder="000.000.000-00"></div>
+    </div>
+  `;
+  document.getElementById('modalFooter').innerHTML = `
+    <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+    <button class="btn btn-primary" onclick="salvarColaborador('${emp?.id || ''}')">Salvar</button>
+  `;
+  openModal();
+}
+
+async function salvarColaborador(id) {
+  const name = document.getElementById('mNome').value.trim();
+  if (!name) { showToast('Nome é obrigatório.', 'error'); return; }
+  const data = {
+    name,
+    position: document.getElementById('mCargo').value.trim(),
+    level: document.getElementById('mLevel').value,
+    baseSalary: Math.round((parseFloat(document.getElementById('mSalario').value) || 0) * 100),
+    cpf: document.getElementById('mCpf').value.trim(),
+    status: 'active',
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+  };
+  try {
+    if (id) await db.collection('employees').doc(id).update(data);
+    else { data.createdAt = firebase.firestore.FieldValue.serverTimestamp(); await db.collection('employees').add(data); }
+    closeModal();
+    showToast(id ? 'Colaborador atualizado!' : 'Colaborador criado!');
+    renderColaboradores();
+  } catch (e) { showToast('Erro ao salvar.', 'error'); }
+}
+
+async function editColaborador(id) {
+  const doc = await db.collection('employees').doc(id).get();
+  openModalColaborador({ id, ...doc.data() });
+}
+
+async function inativarColaborador(id, name) {
+  if (!confirm(`Inativar ${name}?`)) return;
+  await db.collection('employees').doc(id).update({ status: 'inactive' });
+  showToast('Colaborador inativado.');
+  renderColaboradores();
+}
+
+// ============================================================
+// FATURAMENTO
+// ============================================================
+async function renderFaturamento() {
+  const [revSnap, flagSnap] = await Promise.all([
+    db.collection('revenues').where('cycleId', '==', currentCycle.id).orderBy('revenueDate', 'desc').get(),
+    db.collection('flags').where('isActive', '==', true).orderBy('level').get(),
+  ]);
+  const revenues = revSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const flags = flagSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const total = revenues.reduce((s, r) => s + (r.amount || 0), 0);
+  const currentFlag = flags.filter(f => f.minRevenue <= total).sort((a, b) => b.minRevenue - a.minRevenue)[0];
+  const nextFlag = flags.filter(f => f.minRevenue > total).sort((a, b) => a.minRevenue - b.minRevenue)[0];
+
+  document.getElementById('pageContent').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 280px;gap:20px;align-items:start">
+      <div>
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">💰 Faturamento — ${getMonthName(currentCycle.month)}/${currentCycle.year}</div>
+              <div class="card-subtitle">${revenues.length} lançamento(s)</div>
+            </div>
+            <button class="btn btn-primary" onclick="openModalFaturamento()">+ Lançar</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Data</th><th>Obra/Projeto</th><th>Descrição</th><th>Valor</th><th></th></tr></thead>
+              <tbody>
+                ${revenues.length === 0
+                  ? `<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:32px">Nenhum lançamento ainda.</td></tr>`
+                  : revenues.map(r => `<tr>
+                    <td>${r.revenueDate || '–'}</td>
+                    <td><strong>${r.projectName || '–'}</strong></td>
+                    <td style="color:var(--text-muted)">${r.description || '–'}</td>
+                    <td style="font-weight:600;color:var(--green)">${formatCurrency(r.amount)}</td>
+                    <td><button class="btn btn-danger btn-sm" onclick="excluirFaturamento('${r.id}')">Excluir</button></td>
+                  </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title" style="margin-bottom:16px">Resumo do Mês</div>
+        <div style="font-size:12px;color:var(--text-muted)">Total faturado</div>
+        <div style="font-size:28px;font-weight:800;margin-bottom:16px">${formatCurrency(total)}</div>
+        ${currentFlag
+          ? `<div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--surface2);border-radius:8px;margin-bottom:8px">
+              <div class="flag-circle flag-${currentFlag.level}" style="width:36px;height:36px;font-size:14px">${currentFlag.level}</div>
+              <div><div style="font-weight:600">Bandeira ${currentFlag.level}</div><div style="font-size:12px;color:var(--text-muted)">${currentFlag.bonusPercentage}% premiação</div></div>
+            </div>`
+          : `<div style="padding:12px;background:var(--surface2);border-radius:8px;color:var(--text-muted);font-size:13px">Nenhuma bandeira atingida</div>`}
+        ${nextFlag ? `<div style="font-size:12px;color:var(--yellow);margin-top:8px">Faltam ${formatCurrency(nextFlag.minRevenue - total)} para Bandeira ${nextFlag.level}</div>` : ''}
+        <div style="margin-top:16px">
+          ${flags.map(f => `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
+              <span style="color:var(--text-muted)">Bandeira ${f.level}</span>
+              <span>${formatCurrency(f.minRevenue)} · ${f.bonusPercentage}%</span>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function openModalFaturamento() {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('modalTitle').textContent = 'Novo Lançamento';
+  document.getElementById('modalBody').innerHTML = `
+    <div class="form-group"><label class="form-label">Valor (R$) *</label>
+      <input class="form-control" id="rValor" type="number" step="0.01" placeholder="0,00"></div>
+    <div class="form-group"><label class="form-label">Data *</label>
+      <input class="form-control" id="rData" type="date" value="${today}"></div>
+    <div class="form-group"><label class="form-label">Obra / Projeto</label>
+      <input class="form-control" id="rObra" placeholder="Ex: Obra Rua das Flores"></div>
+    <div class="form-group"><label class="form-label">Descrição</label>
+      <textarea class="form-control" id="rDesc" placeholder="Detalhes adicionais..."></textarea></div>
+  `;
+  document.getElementById('modalFooter').innerHTML = `
+    <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+    <button class="btn btn-primary" onclick="salvarFaturamento()">Salvar</button>
+  `;
+  openModal();
+}
+
+async function salvarFaturamento() {
+  const valor = parseFloat(document.getElementById('rValor').value);
+  const data = document.getElementById('rData').value;
+  if (!valor || !data) { showToast('Valor e data são obrigatórios.', 'error'); return; }
+  try {
+    await db.collection('revenues').add({
+      cycleId: currentCycle.id, createdBy: currentUser.uid,
+      amount: Math.round(valor * 100),
+      revenueDate: data,
+      projectName: document.getElementById('rObra').value.trim(),
+      description: document.getElementById('rDesc').value.trim(),
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    closeModal(); showToast('Lançamento salvo!'); renderFaturamento();
+  } catch (e) { showToast('Erro ao salvar.', 'error'); }
+}
+
+async function excluirFaturamento(id) {
+  if (!confirm('Excluir este lançamento?')) return;
+  await db.collection('revenues').doc(id).delete();
+  showToast('Lançamento excluído.');
+  renderFaturamento();
+}
+
+// ============================================================
+// HISTÓRICO DE CICLOS
+// ============================================================
+async function renderCiclos() {
+  const snap = await db.collection('cycles').orderBy('year', 'desc').get();
+  const cycles = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+  document.getElementById('pageContent').innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📅 Histórico de Ciclos</div>
+        ${currentCycle?.status === 'active'
+          ? `<button class="btn btn-danger" onclick="encerrarCiclo()">Encerrar Ciclo Atual</button>`
+          : ''}
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Período</th><th>Status</th><th>Faturamento</th><th>Bandeira</th><th>Encerrado em</th></tr></thead>
+          <tbody>
+            ${cycles.map(c => `<tr>
+              <td><strong>${getMonthName(c.month)}/${c.year}</strong></td>
+              <td><span class="badge ${c.status === 'active' ? 'badge-green' : 'badge-gray'}">${c.status === 'active' ? 'Ativo' : 'Encerrado'}</span></td>
+              <td>${c.totalRevenue ? formatCurrency(c.totalRevenue) : '–'}</td>
+              <td>${c.flagLevel ? `<span class="badge badge-blue">Bandeira ${c.flagLevel} · ${c.flagPercentage}%</span>` : '–'}</td>
+              <td style="color:var(--text-muted)">${c.closedAt ? formatDate(c.closedAt) : '–'}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+async function encerrarCiclo() {
+  if (!confirm('Encerrar o ciclo atual? Esta ação não pode ser desfeita.')) return;
+  try {
+    const revSnap = await db.collection('revenues').where('cycleId', '==', currentCycle.id).get();
+    const total = revSnap.docs.reduce((s, d) => s + (d.data().amount || 0), 0);
+    const flagSnap = await db.collection('flags').where('isActive', '==', true).orderBy('minRevenue', 'desc').get();
+    const flag = flagSnap.docs.map(d => d.data()).find(f => f.minRevenue <= total);
+    await db.collection('cycles').doc(currentCycle.id).update({
+      status: 'closed', totalRevenue: total,
+      flagLevel: flag?.level || 0, flagPercentage: flag?.bonusPercentage || 0,
+      closedAt: firebase.firestore.FieldValue.serverTimestamp(), closedBy: currentUser.uid,
+    });
+    showToast('Ciclo encerrado!');
+    currentCycle = { ...currentCycle, status: 'closed' };
+    renderCiclos();
+  } catch (e) { showToast('Erro ao encerrar ciclo.', 'error'); }
+}
+
+// ============================================================
+// USUÁRIOS
+// ============================================================
+async function renderUsuarios() {
+  const [userSnap, empSnap] = await Promise.all([
+    db.collection('users').get(),
+    db.collection('employees').where('status', '==', 'active').get(),
+  ]);
+  const users = userSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const employees = empSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+  document.getElementById('pageContent').innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">🔐 Usuários do Sistema</div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Nome</th><th>E-mail</th><th>Role</th><th>Colaborador vinculado</th><th></th></tr></thead>
+          <tbody>
+            ${users.map(u => {
+              const linked = employees.find(e => e.userId === u.id);
+              return `<tr>
+                <td><strong>${u.name || '–'}</strong></td>
+                <td style="color:var(--text-muted)">${u.email || '–'}</td>
+                <td>
+                  <select class="form-control" style="width:auto;padding:4px 8px;font-size:12px" onchange="alterarRole('${u.id}', this.value)">
+                    ${['admin','leader','captain','employee'].map(r => `<option ${u.role === r ? 'selected' : ''} value="${r}">${ROLE_LABELS[r]}</option>`).join('')}
+                  </select>
+                </td>
+                <td>
+                  <select class="form-control" style="width:auto;padding:4px 8px;font-size:12px" onchange="vincularEmployee('${u.id}', this.value)">
+                    <option value="">– Nenhum –</option>
+                    ${employees.map(e => `<option value="${e.id}" ${linked?.id === e.id ? 'selected' : ''}>${e.name}</option>`).join('')}
+                  </select>
+                </td>
+                <td><span class="badge badge-gray" style="font-size:10px">${u.createdAt ? formatDate(u.createdAt) : '–'}</span></td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+async function alterarRole(userId, role) {
+  await db.collection('users').doc(userId).update({ role });
+  showToast('Role atualizado!');
+}
+
+async function vincularEmployee(userId, employeeId) {
+  // desvincula o anterior
+  const prev = await db.collection('employees').where('userId', '==', userId).get();
+  for (const doc of prev.docs) await doc.ref.update({ userId: null });
+  if (employeeId) await db.collection('employees').doc(employeeId).update({ userId });
+  showToast('Vínculo atualizado!');
+}
+
+// ============================================================
+// CONFIGURAÇÕES (Bandeiras)
+// ============================================================
+async function renderConfiguracoes() {
+  const snap = await db.collection('flags').orderBy('level').get();
+  const flags = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+  document.getElementById('pageContent').innerHTML = `
+    <div class="card" style="max-width:600px">
+      <div class="card-header">
+        <div><div class="card-title">🚩 Configuração de Bandeiras</div>
+          <div class="card-subtitle">Metas de faturamento e % de premiação</div></div>
+        <button class="btn btn-primary" onclick="openModalBandeira()">+ Nova</button>
+      </div>
+      <div id="flagsList">
+        ${flags.length === 0
+          ? `<div class="empty-state"><div class="empty-icon">🚩</div><div class="empty-text">Nenhuma bandeira configurada.<br>
+             <button class="btn btn-primary" style="margin-top:12px" onclick="seedBandeiras()">Criar Bandeiras Padrão</button></div></div>`
+          : flags.map(f => `
+            <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)">
+              <div class="flag-circle flag-${f.level}" style="width:40px;height:40px;font-size:14px;flex-shrink:0">${f.level}</div>
+              <div style="flex:1">
+                <div style="font-weight:600">Bandeira ${f.level}</div>
+                <div style="font-size:12px;color:var(--text-muted)">A partir de ${formatCurrency(f.minRevenue)} · ${f.bonusPercentage}% de premiação</div>
+              </div>
+              <button class="btn btn-ghost btn-sm" onclick="editBandeira('${f.id}')">Editar</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteBandeira('${f.id}')">Excluir</button>
+            </div>`).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function openModalBandeira(flag = null) {
+  document.getElementById('modalTitle').textContent = flag ? 'Editar Bandeira' : 'Nova Bandeira';
+  document.getElementById('modalBody').innerHTML = `
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Nível *</label>
+        <input class="form-control" id="fLevel" type="number" min="1" max="10" value="${flag?.level || ''}"></div>
+      <div class="form-group"><label class="form-label">% Premiação *</label>
+        <input class="form-control" id="fBonus" type="number" min="0" max="100" value="${flag?.bonusPercentage || ''}"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Faturamento mínimo (R$) *</label>
+      <input class="form-control" id="fMin" type="number" step="0.01" value="${flag ? flag.minRevenue / 100 : ''}"></div>
+  `;
+  document.getElementById('modalFooter').innerHTML = `
+    <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+    <button class="btn btn-primary" onclick="salvarBandeira('${flag?.id || ''}')">Salvar</button>
+  `;
+  openModal();
+}
+
+async function salvarBandeira(id) {
+  const level = parseInt(document.getElementById('fLevel').value);
+  const bonus = parseInt(document.getElementById('fBonus').value);
+  const min = Math.round(parseFloat(document.getElementById('fMin').value) * 100);
+  if (!level || !bonus || !min) { showToast('Preencha todos os campos.', 'error'); return; }
+  const data = { level, bonusPercentage: bonus, minRevenue: min, isActive: true };
+  try {
+    if (id) await db.collection('flags').doc(id).update(data);
+    else { data.createdAt = firebase.firestore.FieldValue.serverTimestamp(); await db.collection('flags').add(data); }
+    closeModal(); showToast('Bandeira salva!'); renderConfiguracoes();
+  } catch (e) { showToast('Erro ao salvar.', 'error'); }
+}
+
+async function editBandeira(id) {
+  const doc = await db.collection('flags').doc(id).get();
+  openModalBandeira({ id, ...doc.data() });
+}
+
+async function deleteBandeira(id) {
+  if (!confirm('Excluir esta bandeira?')) return;
+  await db.collection('flags').doc(id).delete();
+  showToast('Bandeira excluída.'); renderConfiguracoes();
+}
+
+async function seedBandeiras() {
+  const defaults = [
+    { level: 1, minRevenue: 5000000, bonusPercentage: 15 },
+    { level: 2, minRevenue: 8000000, bonusPercentage: 30 },
+    { level: 3, minRevenue: 11000000, bonusPercentage: 45 },
+    { level: 4, minRevenue: 15000000, bonusPercentage: 60 },
+    { level: 5, minRevenue: 20000000, bonusPercentage: 75 },
+  ];
+  for (const f of defaults) {
+    await db.collection('flags').add({ ...f, isActive: true, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+  }
+  showToast('Bandeiras padrão criadas!'); renderConfiguracoes();
+}
+
+// ============================================================
+// MODAL HELPERS
+// ============================================================
+function openModal() { document.getElementById('modalOverlay').classList.add('open'); }
+function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+document.getElementById('modalOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+
+// ============================================================
+// SIDEBAR MOBILE
+// ============================================================
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('open');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('open');
+}
+
+const ROLE_LABELS = { admin: 'Administrador', leader: 'Líder', captain: 'Capitão', employee: 'Colaborador' };
+</script>
+
+<div class="datum-footer">
+  <span>Developed by <strong>Datum Studio</strong></span>
+  <span>APEX Performance · v1.0 · © <span id="year"></span></span>
+</div>
+<script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>
