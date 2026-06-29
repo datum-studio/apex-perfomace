@@ -254,7 +254,7 @@ async function renderDashboard() {
     </div>
 
     <!-- Bandeira + Faturamento -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:24px">
       <div class="card">
         <div class="card-header">
           <div>
@@ -1227,6 +1227,19 @@ function closeSidebar() {
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('sidebarOverlay').classList.remove('open');
 }
+// Ajustar footer no mobile
+function adjustFooter() {
+  const footer = document.getElementById('appFooter');
+  if (!footer) return;
+  if (window.innerWidth <= 768) {
+    footer.style.left = '0';
+  } else {
+    footer.style.left = '240px';
+  }
+}
+window.addEventListener('resize', adjustFooter);
+window.addEventListener('DOMContentLoaded', adjustFooter);
+setTimeout(adjustFooter, 500);
 
 </script>
 
@@ -1235,8 +1248,8 @@ function closeSidebar() {
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600&display=swap" rel="stylesheet">
 
 
-<footer style="position:fixed;bottom:0;left:240px;right:0;background:#0f1117;border-top:1px solid #2e3347;padding:10px 28px;font-family:'Geist',system-ui,sans-serif;z-index:40;">
-  <div style="display:flex;align-items:center;justify-content:space-between;">
+<footer id="appFooter" style="position:fixed;bottom:0;left:240px;right:0;background:#0f1117;border-top:1px solid #2e3347;padding:10px 28px;font-family:'Geist',system-ui,sans-serif;z-index:40;">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px;">
     <div style="font-size:0.82rem;color:#8891a8;">
       Developed by <strong style="color:#a8b4cc;font-weight:600;">Datum Studio</strong>
     </div>
@@ -1245,6 +1258,23 @@ function closeSidebar() {
     </div>
   </div>
 </footer>
-<script>document.getElementById("footer-ano").textContent = new Date().getFullYear();</script>
+<script>document.getElementById("footer-ano").textContent = new Date().getFullYear();
+
+// Ajustar footer no mobile
+function adjustFooter() {
+  const footer = document.getElementById('appFooter');
+  if (!footer) return;
+  if (window.innerWidth <= 768) {
+    footer.style.left = '0';
+    footer.style.padding = '8px 16px';
+  } else {
+    footer.style.left = '240px';
+    footer.style.padding = '10px 28px';
+  }
+}
+window.addEventListener('resize', adjustFooter);
+document.addEventListener('DOMContentLoaded', adjustFooter);
+setTimeout(adjustFooter, 100);
+</script>
 </body>
 </html>

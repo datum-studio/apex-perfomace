@@ -175,7 +175,7 @@ body {
   padding: 4px;
 }
 
-.page-content { padding: 24px; flex: 1; }
+.page-content { padding: 24px; flex: 1; padding-bottom: 80px; }
 
 /* ---- CARDS ---- */
 .card {
@@ -403,19 +403,7 @@ tr:hover td { background: var(--surface2); }
 .flag-5 { background: linear-gradient(135deg, #f59e0b, #d97706); }
 
 /* ---- RESPONSIVE ---- */
-@media (max-width: 768px) {
-  .sidebar { transform: translateX(-100%); }
-  .sidebar.open { transform: translateX(0); }
-  .main-content { margin-left: 0; }
-  .hamburger { display: block; }
-  .stat-grid { grid-template-columns: 1fr 1fr; }
-  .form-row, .form-row-3 { grid-template-columns: 1fr; }
-  .page-content { padding: 16px; }
-  .top-bar { padding: 0 16px; }
-  .modal { max-width: 100%; }
-  table { font-size: 12px; }
-  th, td { padding: 8px; }
-}
+
 
 @media (max-width: 480px) {
   .stat-grid { grid-template-columns: 1fr; }
@@ -455,3 +443,50 @@ tr:hover td { background: var(--surface2); }
 /* SVG inline nos títulos e botões */
 .card-title svg, .btn svg { vertical-align: middle; }
 .card-title { display: flex; align-items: center; gap: 7px; }
+
+/* ---- MOBILE FIXES ---- */
+@media (max-width: 768px) {
+  /* Footer fixo — altura menor e não sobrepõe conteúdo */
+  footer[style*="position:fixed"] {
+    left: 0 !important;
+    padding: 8px 16px !important;
+    flex-wrap: wrap;
+  }
+  footer[style*="position:fixed"] > div {
+    flex-direction: column;
+    gap: 2px;
+  }
+  /* Mais espaço no fundo para não esconder conteúdo */
+  .page-content { padding-bottom: 80px !important; }
+
+  /* Cards lado a lado -> coluna no mobile */
+  div[style*="grid-template-columns:1fr 1fr"] {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  div[style*="grid-template-columns:1fr 280px"] {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  div[style*="grid-template-columns:300px 1fr"] {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  /* Botões de ação não cortam */
+  .btn { white-space: normal; word-break: break-word; }
+
+  /* Stat grid — 1 coluna */
+  .stat-grid { grid-template-columns: 1fr !important; }
+
+  /* Tabelas — scroll horizontal */
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { min-width: 500px; }
+}
+
+/* Two column grid — empilha no mobile */
+.two-col-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+@media (max-width: 768px) {
+  .two-col-grid { grid-template-columns: 1fr; }
+  .hamburger { display: block !important; }
+}
