@@ -50,18 +50,6 @@
       <div class="loading"><div class="spinner"></div> Carregando...</div>
     </div>
   </div>
-  <footer style="background:transparent;border-top:1px solid #2e3347;padding:20px 28px;font-family:'Geist',system-ui,sans-serif;margin-top:auto;">
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
-      <div style="font-size:0.88rem;color:#8891a8;line-height:1.4;">
-        <span style="font-weight:400;">Developed by </span><span style="font-weight:600;color:#a8b4cc;">Datum Studio</span>
-      </div>
-      <div style="text-align:right;color:#5a6378;font-size:0.72rem;line-height:1.7;">
-        <div style="font-weight:500;color:#6e7a94;">APEX Performance · Gestão de Desempenho</div>
-        <div>v1.0.0</div>
-        <div>© <span id="footer-ano">2026</span></div>
-      </div>
-    </div>
-  </footer>
 </div>
 
 <div id="toast" class="toast"></div>
@@ -1247,6 +1235,16 @@ function closeSidebar() {
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600&display=swap" rel="stylesheet">
 
 
+<footer style="position:fixed;bottom:0;left:240px;right:0;background:#0f1117;border-top:1px solid #2e3347;padding:10px 28px;font-family:'Geist',system-ui,sans-serif;z-index:40;">
+  <div style="display:flex;align-items:center;justify-content:space-between;">
+    <div style="font-size:0.82rem;color:#8891a8;">
+      Developed by <strong style="color:#a8b4cc;font-weight:600;">Datum Studio</strong>
+    </div>
+    <div style="text-align:right;color:#5a6378;font-size:0.72rem;line-height:1.5;">
+      <span style="color:#6e7a94;">APEX Performance · Gestão de Desempenho</span> &nbsp;·&nbsp; v1.0.0 &nbsp;·&nbsp; © <span id="footer-ano">2026</span>
+    </div>
+  </div>
+</footer>
 <script>document.getElementById("footer-ano").textContent = new Date().getFullYear();</script>
 </body>
 </html>
