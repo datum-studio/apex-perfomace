@@ -406,8 +406,7 @@ tr:hover td { background: var(--surface2); }
 /* ---- RESPONSIVE ---- */
 
 
-@media (max-width: 480px) {
-  .stat-grid { grid-template-columns: 1fr; }
+
   .score-big { font-size: 36px; }
 }
 
@@ -488,15 +487,7 @@ tr:hover td { background: var(--surface2); }
 /* Two column grid — empilha no mobile */
 .two-col-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
 
-@media (max-width: 768px) {
-  /* Sidebar escondida por padrão no mobile */
-  .sidebar {
-    transform: translateX(-100%) !important;
-    transition: transform 0.3s;
-  }
-  .sidebar.open {
-    transform: translateX(0) !important;
-  }
+
   /* Hamburger visível */
   .hamburger {
     display: block !important;
@@ -509,4 +500,59 @@ tr:hover td { background: var(--surface2); }
   .two-col-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* ============================================================
+   MOBILE — sidebar oculta por padrão, abre via JS
+   ============================================================ */
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    z-index: 200;
+    transform: translateX(-100%);
+    transition: transform 0.28s ease;
+    width: 240px;
+  }
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  .main-content {
+    margin-left: 0;
+  }
+  .hamburger {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+  .stat-grid {
+    grid-template-columns: 1fr;
+  }
+  .two-col-grid {
+    grid-template-columns: 1fr;
+  }
+  .form-row, .form-row-3 {
+    grid-template-columns: 1fr;
+  }
+  .page-content {
+    padding: 12px;
+    padding-bottom: 80px;
+  }
+  .top-bar {
+    padding: 0 12px;
+  }
+  table {
+    font-size: 12px;
+  }
+  th, td {
+    padding: 8px 6px;
+  }
+  .btn {
+    font-size: 12px;
+    padding: 7px 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .score-big { font-size: 36px; }
 }

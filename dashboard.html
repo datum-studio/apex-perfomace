@@ -1226,13 +1226,26 @@ document.getElementById('modalOverlay').addEventListener('click', e => { if (e.t
 // SIDEBAR MOBILE
 // ============================================================
 function toggleSidebar() {
-  document.getElementById('sidebar').classList.toggle('open');
-  document.getElementById('sidebarOverlay').classList.toggle('open');
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  sidebar.classList.toggle('open');
+  overlay.classList.toggle('open');
 }
+
 function closeSidebar() {
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('sidebarOverlay').classList.remove('open');
 }
+
+// Footer responsivo
+function adjustFooter() {
+  const footer = document.getElementById('appFooter');
+  if (!footer) return;
+  footer.style.left = window.innerWidth <= 768 ? '0' : '240px';
+}
+window.addEventListener('resize', adjustFooter);
+setTimeout(adjustFooter, 300);
+
 // Ajustar footer no mobile
 function adjustFooter() {
   const footer = document.getElementById('appFooter');
