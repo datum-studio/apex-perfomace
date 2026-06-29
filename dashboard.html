@@ -15,7 +15,7 @@
   <!-- Sidebar -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-logo">
-      <div class="logo-icon">▲</div>
+      <div class="logo-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="white" stroke="none"><polygon points="12,2 22,20 2,20"/></svg></div>
       <div>
         <div class="logo-text" style="letter-spacing:2px">APEX</div>
         <div class="logo-sub" style="letter-spacing:1px;text-transform:uppercase">Estruturas Metálicas</div>
@@ -41,7 +41,7 @@
   <!-- Conteúdo principal -->
   <div class="main-content">
     <div class="top-bar">
-      <button class="hamburger" onclick="toggleSidebar()">☰</button>
+      <button class="hamburger" onclick="toggleSidebar()"></button>
       <span class="page-title" id="pageTitle">Dashboard</span>
       <div id="cycleInfo" style="font-size:12px;color:var(--text-muted);"></div>
     </div>
@@ -83,16 +83,16 @@ const ROLE_LABELS = { admin: 'Administrador', leader: 'Líder', captain: 'Capit�
 
 function getNavItems(role) {
   const all = [
-    { id: 'dashboard', icon: '📊', label: 'Dashboard', roles: ['admin', 'leader', 'captain'] },
-    { id: 'meu-painel', icon: '👤', label: 'Meu Painel', roles: ['employee', 'captain', 'leader', 'admin'] },
-    { id: 'avaliar', icon: '✅', label: 'Avaliar Agora', roles: ['leader', 'captain', 'admin'], section: 'Avaliações' },
-    { id: 'avaliacoes', icon: '📋', label: 'Avaliações do Mês', roles: ['leader', 'captain', 'admin'] },
-    { id: 'placar', icon: '🏆', label: 'Placar Geral', roles: ['leader', 'captain', 'admin'] },
-    { id: 'colaboradores', icon: '👥', label: 'Colaboradores', roles: ['admin'], section: 'Gestão' },
-    { id: 'faturamento', icon: '💰', label: 'Faturamento', roles: ['admin'] },
-    { id: 'ciclos', icon: '📅', label: 'Histórico de Ciclos', roles: ['admin'] },
-    { id: 'usuarios', icon: '🔐', label: 'Usuários', roles: ['admin'] },
-    { id: 'configuracoes', icon: '⚙️', label: 'Configurações', roles: ['admin'], section: 'Sistema' },
+    { id: 'dashboard', icon: '', label: 'Dashboard', roles: ['admin', 'leader', 'captain'] },
+    { id: 'meu-painel', icon: '', label: 'Meu Painel', roles: ['employee', 'captain', 'leader', 'admin'] },
+    { id: 'avaliar', icon: '', label: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m9 12 2 2 4-4"/></svg> Avaliar Agora', roles: ['leader', 'captain', 'admin'], section: 'Avaliações' },
+    { id: 'avaliacoes', icon: '', label: 'Avaliações do Mês', roles: ['leader', 'captain', 'admin'] },
+    { id: 'placar', icon: '', label: 'Placar Geral', roles: ['leader', 'captain', 'admin'] },
+    { id: 'colaboradores', icon: '', label: 'Colaboradores', roles: ['admin'], section: 'Gestão' },
+    { id: 'faturamento', icon: '', label: 'Faturamento', roles: ['admin'] },
+    { id: 'ciclos', icon: '', label: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Histórico de Ciclos', roles: ['admin'] },
+    { id: 'usuarios', icon: '', label: 'Usuários', roles: ['admin'] },
+    { id: 'configuracoes', icon: '', label: 'Configurações', roles: ['admin'], section: 'Sistema' },
   ];
   return all.filter(item => item.roles.includes(role));
 }
@@ -161,7 +161,7 @@ function renderPage(pageId) {
     dashboard: 'Dashboard', 'meu-painel': 'Meu Painel', avaliar: 'Avaliar Agora',
     avaliacoes: 'Avaliações do Mês', placar: 'Placar Geral',
     colaboradores: 'Colaboradores', faturamento: 'Faturamento',
-    ciclos: 'Histórico de Ciclos', usuarios: 'Usuários', configuracoes: 'Configurações'
+    ciclos: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Histórico de Ciclos', usuarios: 'Usuários', configuracoes: 'Configurações'
   };
   document.getElementById('pageTitle').textContent = titles[pageId] || pageId;
   const content = document.getElementById('pageContent');
@@ -196,8 +196,8 @@ async function renderDashboard() {
 
   const employees = empSnap.docs.map(d => ({ id: d.id, ...d.data() }));
   const evaluations = evalSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-  const revenues = revSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-  const flags = flagSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const revenues = revSnap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.revenueDate || '').localeCompare(a.revenueDate || ''));
+  const flags = flagSnap.docs.map(d => ({ id: d.id, ...d.data() })).filter(f => f.isActive !== false).sort((a, b) => a.level - b.level);
 
   // Calcular médias por colaborador
   const avgMap = {};
@@ -225,7 +225,7 @@ async function renderDashboard() {
     <!-- Stats -->
     <div class="stat-grid">
       <div class="stat-card">
-        <div class="stat-icon">✅</div>
+        <div class="stat-icon"></div>
         <div class="stat-label">Avaliados</div>
         <div class="stat-value" style="color:var(--green)">${evaluated.length}</div>
         <div class="stat-sub">de ${employees.length} colaboradores</div>
@@ -234,19 +234,19 @@ async function renderDashboard() {
         </div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon">⏳</div>
+        <div class="stat-icon"></div>
         <div class="stat-label">Sem Avaliação</div>
         <div class="stat-value" style="color:var(--yellow)">${pending.length}</div>
         <div class="stat-sub">precisam ser avaliados</div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon">⚠️</div>
+        <div class="stat-icon"></div>
         <div class="stat-label">2+ Atrasos</div>
         <div class="stat-value" style="color:var(--yellow)">${withLates.length}</div>
         <div class="stat-sub">risco de perder premiação</div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon">🚨</div>
+        <div class="stat-icon"></div>
         <div class="stat-label">Em Berlinda</div>
         <div class="stat-value" style="color:var(--red)">${berlinda.length}</div>
         <div class="stat-sub">nota abaixo de 50</div>
@@ -258,10 +258,10 @@ async function renderDashboard() {
       <div class="card">
         <div class="card-header">
           <div>
-            <div class="card-title">🚩 Status da Bandeira</div>
+            <div class="card-title"> <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg> Status da Bandeira</div>
             <div class="card-subtitle">${getMonthName(cycle.month)}/${cycle.year}</div>
           </div>
-          ${isAdmin ? `<button class="btn btn-primary btn-sm" onclick="navigate('faturamento')">+ Lançar</button>` : ''}
+          ${isAdmin ? `<button class="btn btn-primary btn-sm" onclick="navigate('faturamento')"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Lançar</button>` : ''}
         </div>
         <div style="display:flex;align-items:center;gap:16px">
           ${currentFlag
@@ -283,11 +283,11 @@ async function renderDashboard() {
 
       <div class="card">
         <div class="card-header">
-          <div class="card-title">⏳ Aguardando Avaliação</div>
+          <div class="card-title"> <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Aguardando Avaliação</div>
           <button class="btn btn-primary btn-sm" onclick="navigate('avaliar')">Avaliar</button>
         </div>
         ${pending.length === 0
-          ? `<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">Todos avaliados!</div></div>`
+          ? `<div class="empty-state"><div class="empty-icon"></div><div class="empty-text">Todos avaliados!</div></div>`
           : `<div style="display:flex;flex-direction:column;gap:8px">
               ${pending.slice(0, 5).map(emp => `
                 <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface2);border-radius:8px;cursor:pointer" onclick="navigate('avaliar')">
@@ -306,13 +306,13 @@ async function renderDashboard() {
 
     <!-- Ações rápidas -->
     <div class="card">
-      <div class="card-title" style="margin-bottom:12px">Ações Rápidas</div>
+      <div class="card-title" style="margin-bottom:12px"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg> Ações Rápidas</div>
       <div style="display:flex;flex-wrap:wrap;gap:8px">
-        <button class="btn btn-primary" onclick="navigate('avaliar')">✅ Avaliar Colaborador</button>
-        <button class="btn btn-ghost" onclick="navigate('avaliacoes')">📋 Ver Avaliações</button>
-        <button class="btn btn-ghost" onclick="navigate('placar')">🏆 Placar Geral</button>
-        ${isAdmin ? `<button class="btn btn-ghost" onclick="navigate('colaboradores')">👥 Colaboradores</button>` : ''}
-        ${isAdmin ? `<button class="btn btn-ghost" onclick="navigate('faturamento')">💰 Faturamento</button>` : ''}
+        <button class="btn btn-primary" onclick="navigate('avaliar')"> Avaliar Colaborador</button>
+        <button class="btn btn-ghost" onclick="navigate('avaliacoes')"> Ver Avaliações</button>
+        <button class="btn btn-ghost" onclick="navigate('placar')"> Placar Geral</button>
+        ${isAdmin ? `<button class="btn btn-ghost" onclick="navigate('colaboradores')"> Colaboradores</button>` : ''}
+        ${isAdmin ? `<button class="btn btn-ghost" onclick="navigate('faturamento')"> Faturamento</button>` : ''}
       </div>
     </div>
   `;
@@ -327,7 +327,7 @@ async function renderMeuPainel() {
   if (empSnap.empty) {
     document.getElementById('pageContent').innerHTML = `
       <div class="empty-state">
-        <div class="empty-icon">👤</div>
+        <div class="empty-icon"></div>
         <div class="empty-text">Seu usuário ainda não está vinculado a um colaborador.<br>Fale com o administrador.</div>
       </div>`;
     return;
@@ -343,7 +343,7 @@ async function renderMeuPainel() {
 
   const evals = evalSnap.docs.map(d => d.data());
   const history = histSnap.docs.map(d => d.data());
-  const flags = flagSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const flags = flagSnap.docs.map(d => ({ id: d.id, ...d.data() })).filter(f => f.isActive !== false).sort((a, b) => a.level - b.level);
 
   const avgScore = evals.length ? Math.round(evals.reduce((s, e) => s + e.totalScore, 0) / evals.length) : null;
   const lateCount = evals.length ? Math.max(...evals.map(e => e.lateCount || 0)) : 0;
@@ -373,29 +373,29 @@ async function renderMeuPainel() {
           <div style="font-size:12px;color:var(--text-muted);margin:4px 0 12px">nota do mês (${evals.length} avaliações)</div>
           <span class="badge" style="background:${status.color}20;color:${status.color}">${status.label}</span>
 
-          ${lateCount > 0 ? `<div style="margin-top:12px;font-size:12px;color:${lateCount >= 3 ? 'var(--red)' : 'var(--yellow)'}">⚠️ ${lateCount} atraso${lateCount > 1 ? 's' : ''} no mês</div>` : ''}
+          ${lateCount > 0 ? `<div style="margin-top:12px;font-size:12px;color:${lateCount >= 3 ? 'var(--red)' : 'var(--yellow)'}"> ${lateCount} atraso${lateCount > 1 ? 's' : ''} no mês</div>` : ''}
         </div>
 
         <!-- Promoção -->
         ${req ? `
         <div class="card">
-          <div class="card-title" style="margin-bottom:12px">📈 Plano de Carreira</div>
+          <div class="card-title" style="margin-bottom:12px"> <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg> Plano de Carreira</div>
           <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px">
             ${emp.level} → ${req.next} · Mínimo ${req.min} pontos
           </div>
           ${promoEligible
-            ? `<span class="badge badge-green">✅ Pronto para promoção</span>`
+            ? `<span class="badge badge-green"> Pronto para promoção</span>`
             : `<span class="badge badge-gray">Atingir ${req.min} pts por 2 meses consecutivos</span>`
           }
-        </div>` : `<div class="card"><div style="color:var(--text-muted);text-align:center;padding:8px">🏅 Nível máximo (N5)</div></div>`}
+        </div>` : `<div class="card"><div style="color:var(--text-muted);text-align:center;padding:8px"> Nível máximo (N5)</div></div>`}
       </div>
 
       <!-- Indicadores + histórico -->
       <div>
         <div class="card" style="margin-bottom:16px">
-          <div class="card-title" style="margin-bottom:16px">Indicadores do Mês</div>
+          <div class="card-title" style="margin-bottom:16px"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> Indicadores do Mês</div>
           ${evals.length === 0
-            ? `<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">Sem avaliações neste ciclo ainda.</div></div>`
+            ? `<div class="empty-state"><div class="empty-icon"></div><div class="empty-text">Sem avaliações neste ciclo ainda.</div></div>`
             : `
             ${[
               { label: 'Pontualidade', val: avgPunctuality },
@@ -417,9 +417,9 @@ async function renderMeuPainel() {
         </div>
 
         <div class="card">
-          <div class="card-title" style="margin-bottom:12px">Histórico de Avaliações</div>
+          <div class="card-title" style="margin-bottom:12px"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Histórico de Avaliações</div>
           ${history.length === 0
-            ? `<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-text">Nenhum histórico ainda.</div></div>`
+            ? `<div class="empty-state"><div class="empty-icon"></div><div class="empty-text">Nenhum histórico ainda.</div></div>`
             : `<div class="table-wrap"><table>
                 <thead><tr><th>Ciclo</th><th>Nota</th><th>Atrasos</th><th>Status</th></tr></thead>
                 <tbody>
@@ -464,11 +464,11 @@ async function renderAvaliar() {
         <div style="margin:20px 0;padding:16px;background:var(--surface2);border-radius:10px">
           <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Indicadores (0 a 20 cada)</div>
           ${[
-            { id: 'punctuality', label: '⏰ Pontualidade' },
-            { id: 'organization', label: '🗂️ Organização (5S)' },
-            { id: 'productivity', label: '⚡ Produtividade' },
-            { id: 'quality', label: '✨ Qualidade' },
-            { id: 'safety', label: '🦺 Segurança' },
+            { id: 'punctuality', label: ' Pontualidade' },
+            { id: 'organization', label: ' Organização (5S)' },
+            { id: 'productivity', label: ' Produtividade' },
+            { id: 'quality', label: ' Qualidade' },
+            { id: 'safety', label: ' Segurança' },
           ].map(ind => `
             <div style="margin-bottom:16px">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
@@ -599,8 +599,8 @@ async function renderAvaliacoes() {
 
     <div class="card">
       <div class="card-header">
-        <div class="card-title">Avaliações por Colaborador</div>
-        <button class="btn btn-primary btn-sm" onclick="navigate('avaliar')">+ Nova Avaliação</button>
+        <div class="card-title"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> Avaliações por Colaborador</div>
+        <button class="btn btn-primary btn-sm" onclick="navigate('avaliar')"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nova Avaliação</button>
       </div>
       <div class="table-wrap">
         <table>
@@ -667,7 +667,7 @@ async function renderPlacar() {
     <div class="card">
       <div class="card-header">
         <div>
-          <div class="card-title">🏆 Placar Geral — ${getMonthName(currentCycle.month)}/${currentCycle.year}</div>
+          <div class="card-title"> <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg> Placar Geral — ${getMonthName(currentCycle.month)}/${currentCycle.year}</div>
           <div class="card-subtitle">Ordenado por média de pontuação</div>
         </div>
       </div>
@@ -677,7 +677,7 @@ async function renderPlacar() {
           <tbody>
             ${data.map(({ emp, score, late, count, p, o, pr, q, s }, i) => {
               const status = getScoreLabel(score, late);
-              const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`;
+              const medal = i === 0 ? '' : i === 1 ? '' : i === 2 ? '' : `${i + 1}`;
               return `<tr>
                 <td style="font-weight:700;font-size:16px">${medal}</td>
                 <td><strong>${emp.name}</strong></td>
@@ -705,8 +705,8 @@ async function renderColaboradores() {
   document.getElementById('pageContent').innerHTML = `
     <div class="card">
       <div class="card-header">
-        <div class="card-title">👥 Colaboradores (${employees.length})</div>
-        <button class="btn btn-primary" onclick="openModalColaborador()">+ Novo</button>
+        <div class="card-title"> <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Colaboradores (${employees.length})</div>
+        <button class="btn btn-primary" onclick="openModalColaborador()"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Novo</button>
       </div>
       <div class="table-wrap">
         <table>
@@ -795,11 +795,11 @@ async function inativarColaborador(id, name) {
 // ============================================================
 async function renderFaturamento() {
   const [revSnap, flagSnap] = await Promise.all([
-    db.collection('revenues').where('cycleId', '==', currentCycle.id).orderBy('revenueDate', 'desc').get(),
-    db.collection('flags').where('isActive', '==', true).orderBy('level').get(),
+    db.collection('revenues').where('cycleId', '==', currentCycle.id).get(),
+    db.collection('flags').get(),
   ]);
   const revenues = revSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-  const flags = flagSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const flags = flagSnap.docs.map(d => ({ id: d.id, ...d.data() })).filter(f => f.isActive !== false).sort((a, b) => a.level - b.level);
   const total = revenues.reduce((s, r) => s + (r.amount || 0), 0);
   const currentFlag = flags.filter(f => f.minRevenue <= total).sort((a, b) => b.minRevenue - a.minRevenue)[0];
   const nextFlag = flags.filter(f => f.minRevenue > total).sort((a, b) => a.minRevenue - b.minRevenue)[0];
@@ -810,7 +810,7 @@ async function renderFaturamento() {
         <div class="card">
           <div class="card-header">
             <div>
-              <div class="card-title">💰 Faturamento — ${getMonthName(currentCycle.month)}/${currentCycle.year}</div>
+              <div class="card-title"> Faturamento — ${getMonthName(currentCycle.month)}/${currentCycle.year}</div>
               <div class="card-subtitle">${revenues.length} lançamento(s)</div>
             </div>
             <button class="btn btn-primary" onclick="openModalFaturamento()">+ Lançar</button>
@@ -911,9 +911,9 @@ async function renderCiclos() {
   document.getElementById('pageContent').innerHTML = `
     <div class="card">
       <div class="card-header">
-        <div class="card-title">📅 Histórico de Ciclos</div>
+        <div class="card-title"> <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Histórico de Ciclos</div>
         ${currentCycle?.status === 'active'
-          ? `<button class="btn btn-danger" onclick="encerrarCiclo()">Encerrar Ciclo Atual</button>`
+          ? `<button class="btn btn-danger" onclick="encerrarCiclo()"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Encerrar Ciclo Atual</button>`
           : ''}
       </div>
       <div class="table-wrap">
@@ -966,7 +966,7 @@ async function renderUsuarios() {
   document.getElementById('pageContent').innerHTML = `
     <div class="card">
       <div class="card-header">
-        <div class="card-title">🔐 Usuários do Sistema</div>
+        <div class="card-title"> <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Usuários do Sistema</div>
       </div>
       <div class="table-wrap">
         <table>
@@ -998,6 +998,113 @@ async function renderUsuarios() {
   `;
 }
 
+
+// ============================================================
+// CRIAR NOVO USUÁRIO (via Firebase Auth REST API)
+// ============================================================
+function openModalNovoUsuario() {
+  document.getElementById('modalTitle').textContent = 'Novo Usuário';
+  document.getElementById('modalBody').innerHTML = `
+    <div class="form-group">
+      <label class="form-label">Nome completo *</label>
+      <input class="form-control" id="nuNome" placeholder="Nome do usuário">
+    </div>
+    <div class="form-group">
+      <label class="form-label">E-mail *</label>
+      <input class="form-control" id="nuEmail" type="email" placeholder="email@empresa.com">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Senha *</label>
+      <input class="form-control" id="nuSenha" type="password" placeholder="Mínimo 6 caracteres">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Role</label>
+      <select class="form-control" id="nuRole">
+        <option value="employee">Colaborador</option>
+        <option value="captain">Capitão</option>
+        <option value="leader">Líder</option>
+        <option value="admin">Administrador</option>
+      </select>
+    </div>
+    <div id="nuError" style="color:var(--red);font-size:12px;margin-top:8px;display:none"></div>
+  `;
+  document.getElementById('modalFooter').innerHTML = `
+    <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+    <button class="btn btn-primary" id="btnCriarUser" onclick="criarUsuario()">Criar Usuário</button>
+  `;
+  openModal();
+}
+
+async function criarUsuario() {
+  const nome = document.getElementById('nuNome').value.trim();
+  const email = document.getElementById('nuEmail').value.trim();
+  const senha = document.getElementById('nuSenha').value;
+  const role = document.getElementById('nuRole').value;
+  const errEl = document.getElementById('nuError');
+
+  if (!nome || !email || !senha) {
+    errEl.textContent = 'Preencha todos os campos obrigatórios.';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (senha.length < 6) {
+    errEl.textContent = 'A senha deve ter pelo menos 6 caracteres.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  document.getElementById('btnCriarUser').disabled = true;
+  document.getElementById('btnCriarUser').textContent = 'Criando...';
+  errEl.style.display = 'none';
+
+  try {
+    // Criar usuário via Firebase Auth REST API
+    const apiKey = firebaseConfig.apiKey;
+    const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: senha, returnSecureToken: true })
+    });
+    const data = await res.json();
+
+    if (data.error) {
+      const msgs = {
+        'EMAIL_EXISTS': 'Este e-mail já está cadastrado.',
+        'INVALID_EMAIL': 'E-mail inválido.',
+        'WEAK_PASSWORD : Password should be at least 6 characters': 'Senha muito fraca (mínimo 6 caracteres).',
+      };
+      throw new Error(msgs[data.error.message] || data.error.message);
+    }
+
+    const uid = data.localId;
+
+    // Atualizar displayName via REST API
+    await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:update?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idToken: data.idToken, displayName: nome })
+    });
+
+    // Criar documento no Firestore
+    await db.collection('users').doc(uid).set({
+      name: nome,
+      email,
+      role,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+
+    closeModal();
+    showToast(`Usuário ${nome} criado com sucesso!`);
+    renderUsuarios();
+
+  } catch (err) {
+    errEl.textContent = err.message || 'Erro ao criar usuário.';
+    errEl.style.display = 'block';
+    document.getElementById('btnCriarUser').disabled = false;
+    document.getElementById('btnCriarUser').textContent = 'Criar Usuário';
+  }
+}
+
 async function alterarRole(userId, role) {
   await db.collection('users').doc(userId).update({ role });
   showToast('Role atualizado!');
@@ -1021,14 +1128,14 @@ async function renderConfiguracoes() {
   document.getElementById('pageContent').innerHTML = `
     <div class="card" style="max-width:600px">
       <div class="card-header">
-        <div><div class="card-title">🚩 Configuração de Bandeiras</div>
+        <div><div class="card-title"> <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg> Configuração de Bandeiras</div>
           <div class="card-subtitle">Metas de faturamento e % de premiação</div></div>
         <button class="btn btn-primary" onclick="openModalBandeira()">+ Nova</button>
       </div>
       <div id="flagsList">
         ${flags.length === 0
-          ? `<div class="empty-state"><div class="empty-icon">🚩</div><div class="empty-text">Nenhuma bandeira configurada.<br>
-             <button class="btn btn-primary" style="margin-top:12px" onclick="seedBandeiras()">Criar Bandeiras Padrão</button></div></div>`
+          ? `<div class="empty-state"><div class="empty-icon"></div><div class="empty-text">Nenhuma bandeira configurada.<br>
+             <button class="btn btn-primary" style="margin-top:12px" onclick="seedBandeiras()"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg> Criar Bandeiras Padrão</button></div></div>`
           : flags.map(f => `
             <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)">
               <div class="flag-circle flag-${f.level}" style="width:40px;height:40px;font-size:14px;flex-shrink:0">${f.level}</div>
@@ -1122,10 +1229,24 @@ function closeSidebar() {
 
 </script>
 
-<div class="datum-footer">
-  <span>Developed by <strong>Datum Studio</strong></span>
-  <span>APEX Estruturas Metálicas · v1.0 · © <span id="year"></span></span>
-</div>
-<script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600&display=swap" rel="stylesheet">
+
+<footer style="background:transparent;border-top:1px solid #2e3347;padding:20px 28px;font-family:'Geist',system-ui,sans-serif;margin-top:8px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+    <div>
+      <div style="font-size:0.88rem;color:rgba(255,255,255,0.95);line-height:1.4;">
+        <span style="font-weight:400;">Developed by </span><span style="font-weight:600;">Datum Studio</span>
+      </div>
+    </div>
+    <div style="text-align:right;color:rgba(255,255,255,0.72);font-size:0.72rem;line-height:1.7;">
+      <div style="font-weight:500;">APEX Performance · Gestão de Desempenho</div>
+      <div style="opacity:0.8;">v1.0.0</div>
+      <div>© <span id="footer-ano">2026</span></div>
+    </div>
+  </div>
+</footer>
+<script>document.getElementById('footer-ano').textContent = new Date().getFullYear();</script>
 </body>
 </html>

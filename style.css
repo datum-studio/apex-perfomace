@@ -110,7 +110,8 @@ body {
 
 .nav-item:hover { background: var(--surface2); color: var(--text); }
 .nav-item.active { background: var(--primary-glow); color: var(--primary); border-right: 2px solid var(--primary); }
-.nav-item .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+.nav-item .nav-icon { width: 20px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.nav-item .nav-icon svg { width: 16px; height: 16px; }
 
 .sidebar-footer {
   padding: 12px 16px;
@@ -207,7 +208,8 @@ body {
 .stat-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
 .stat-value { font-size: 28px; font-weight: 700; color: var(--text); line-height: 1; }
 .stat-sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
-.stat-icon { font-size: 20px; margin-bottom: 8px; }
+.stat-icon { margin-bottom: 10px; display: flex; align-items: center; }
+.stat-icon svg { width: 18px; height: 18px; }
 
 /* ---- BUTTONS ---- */
 .btn {
@@ -449,3 +451,7 @@ tr:hover td { background: var(--surface2); }
   font-size: 11px;
   color: var(--text-muted);
 }
+
+/* SVG inline nos títulos e botões */
+.card-title svg, .btn svg { vertical-align: middle; }
+.card-title { display: flex; align-items: center; gap: 7px; }
