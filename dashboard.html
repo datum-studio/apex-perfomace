@@ -337,7 +337,7 @@ async function renderMeuPainel() {
 
   const [evalSnap, histSnap, flagSnap] = await Promise.all([
     db.collection('evaluations').where('cycleId', '==', cycle.id).where('employeeId', '==', emp.id).get(),
-    db.collection('evaluations').where('employeeId', '==', emp.id).orderBy('createdAt', 'desc').limit(12).get(),
+    db.collection('evaluations').where('employeeId', '==', emp.id).limit(12).get(),
     db.collection('flags').orderBy('level').get(),
   ]);
 
@@ -445,8 +445,8 @@ async function renderMeuPainel() {
 // AVALIAR AGORA
 // ============================================================
 async function renderAvaliar() {
-  const empSnap = await db.collection('employees').where('status', '==', 'active').orderBy('name').get();
-  const employees = empSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const empSnap = await db.collection('employees').where('status', '==', 'active').get();
+  const employees = empSnap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => a.name.localeCompare(b.name));
 
   document.getElementById('pageContent').innerHTML = `
     <div style="max-width:600px;margin:0 auto">
@@ -700,7 +700,7 @@ async function renderPlacar() {
 // ============================================================
 async function renderColaboradores() {
   const snap = await db.collection('employees').orderBy('name').get();
-  const employees = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const employees = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => a.name.localeCompare(b.name));
 
   document.getElementById('pageContent').innerHTML = `
     <div class="card">
@@ -905,8 +905,8 @@ async function excluirFaturamento(id) {
 // HISTÓRICO DE CICLOS
 // ============================================================
 async function renderCiclos() {
-  const snap = await db.collection('cycles').orderBy('year', 'desc').get();
-  const cycles = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const snap = await db.collection('cycles').get();
+  const cycles = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => b.year - a.year || b.month - a.month);
 
   document.getElementById('pageContent').innerHTML = `
     <div class="card">
@@ -939,8 +939,8 @@ async function encerrarCiclo() {
   try {
     const revSnap = await db.collection('revenues').where('cycleId', '==', currentCycle.id).get();
     const total = revSnap.docs.reduce((s, d) => s + (d.data().amount || 0), 0);
-    const flagSnap = await db.collection('flags').where('isActive', '==', true).orderBy('minRevenue', 'desc').get();
-    const flag = flagSnap.docs.map(d => d.data()).find(f => f.minRevenue <= total);
+    const flagSnap = await db.collection('flags').get();
+    const flag = flagSnap.docs.map(d => d.data()).filter(f => f.isActive !== false).sort((a,b) => b.minRevenue - a.minRevenue).find(f => f.minRevenue <= total);
     await db.collection('cycles').doc(currentCycle.id).update({
       status: 'closed', totalRevenue: total,
       flagLevel: flag?.level || 0, flagPercentage: flag?.bonusPercentage || 0,
