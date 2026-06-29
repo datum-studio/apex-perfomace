@@ -47,7 +47,7 @@
   <!-- Conteúdo principal -->
   <div class="main-content">
     <div class="top-bar">
-      <button class="hamburger" onclick="toggleSidebar()"></button>
+      <button class="hamburger" onclick="toggleSidebar()">&#9776;</button>
       <span class="page-title" id="pageTitle">Dashboard</span>
       <div id="cycleInfo" style="font-size:12px;color:var(--text-muted);"></div>
     </div>
@@ -1237,24 +1237,9 @@ function closeSidebar() {
   document.getElementById('sidebarOverlay').classList.remove('open');
 }
 
-// Footer responsivo
 function adjustFooter() {
-  const footer = document.getElementById('appFooter');
-  if (!footer) return;
-  footer.style.left = window.innerWidth <= 768 ? '0' : '240px';
-}
-window.addEventListener('resize', adjustFooter);
-setTimeout(adjustFooter, 300);
-
-// Ajustar footer no mobile
-function adjustFooter() {
-  const footer = document.getElementById('appFooter');
-  if (!footer) return;
-  if (window.innerWidth <= 768) {
-    footer.style.left = '0';
-  } else {
-    footer.style.left = '240px';
-  }
+  const f = document.getElementById('appFooter');
+  if (f) f.style.left = window.innerWidth <= 768 ? '0' : '240px';
 }
 window.addEventListener('resize', adjustFooter);
 window.addEventListener('DOMContentLoaded', adjustFooter);
